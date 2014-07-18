@@ -27,7 +27,7 @@ static struct timeval tv;
 
 /* Gather and display lpar utilization metrics */
 void collect_mem_info(char * tags) {
-
+	printf("MEM\n");
    int retcode;
    perfstat_memory_total_t mem;
    gettimeofday(&tv, NULL );

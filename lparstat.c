@@ -92,15 +92,15 @@ int main(int argc, char* argv[]) {
 	sprintf(machine_tag, "machine=%s", machine_id);
 
 	tags = malloc( strlen(machine_tag) + 1 + strlen(hostname_tag) );
-	sprintf(tags, "%s %s", machine_tag, hostname_tag);
+	sprintf(tags, "%s %s", hostname_tag, machine_tag);
 	printf("%s\n", tags);
 
 	display_lpar_util();
 	while (1) {
                 net_collect(tags);
                 disk_collect(tags);
-                collect_mem_info(tags);
-		display_lpar_util();
+                /*collect_mem_info(tags); */
+		/*display_lpar_util(); */
 		sleep(atoi(argv[1]));
 	}
 	return (0);

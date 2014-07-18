@@ -24,7 +24,7 @@
 #define RSP_MAX_LEN 2048
 
 unsigned short OpenTSDBPort = PORT;
-char * serveurs[] = { "55.37.70.147", "55.37.68.76" };
+char * serveurs[] = { "55.11.9.196" };
 char srvrsp[RSP_MAX_LEN];
 unsigned short int currentServeur = -1;
 int sock = -1; /* Socket de connexion au serveur OpenTSDB */
@@ -109,7 +109,7 @@ char *trim(char *s)
 }
 
 int try2sendCollectedData(int now, char * metric, char * data, char * tag) {
-	unsigned int sentL; /* Taille de la chaine envoyée */
+	unsigned int sentL; /* Taille de la chaine envoye */
 
 	while (sock < 0) {
 		if (try2connect() < 0) {
@@ -117,14 +117,17 @@ int try2sendCollectedData(int now, char * metric, char * data, char * tag) {
 		}
 	}
 
-	int outL = 4 + strlen(metric) + 1 + TS_LENGTH + 1 + strlen(trim(data)) + 1
-			+ strlen(tag) + strlen("\n");
-	char * out = malloc(outL);
-	sprintf(out, "put %s %d %s %s\n", metric, now, trim(data), tag);
+	char * tdata = trim(data);
 
-	printf("[send][%d]%s", outL, out);
+	int outL = 4 + strlen(metric) + 1 + TS_LENGTH + 1 + strlen(tdata) + 1
+			+ strlen(tag) + strlen("\n");
+	char * out = malloc(outL + 8);
+	sprintf(out, "put %s %d %s %s\n", metric, now, tdata, tag);
+
 	sentL = send(sock, out, outL, 0);
-	/* printf("%d bytes have been sent @ %d\n", sentL, now); */
+	printf("[send][S=%d][N=%d]%s", outL, sentL, out);
+
+
 	free(out);
 	return sentL;
 }
@@ -144,7 +147,7 @@ void sendCollectedData(int now, char * metric, char * data, char * tag) {
 	}*/
 }
 
-/* retourne 1 si valeur mise à jour, 0 sinon */
+/* retourne 1 si valeur mise a jour, 0 sinon */
 int sendCollectedData2(int now, char * metric, char * data, char * tag, char * old_data, int lastupdate) {
 
 	char * tdata = trim(data);
