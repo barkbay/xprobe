@@ -48,7 +48,14 @@ static char * hostname_tag;
 char machine_tag[32] = "";
 char machine_id[16] = "";
 
-static char * tags;
+static char * tags ;
+
+static char * tag_idle;
+static char * tag_user;
+static char * tag_system;
+static char * tag_wait;
+
+
 static struct timeval tv;
 
 static char pcpu_user[8];
@@ -59,6 +66,13 @@ static char physc[8];
 static char entc[8];
 
 void display_lpar_util(void);
+
+char *mktagcpu(char * orig, char * type) {
+	int tagsize = strlen(orig) + 1 + strlen(type);
+	char* result = malloc(tagsize);
+	sprintf(result, "%s %s", orig, type);
+	return result;
+}
 
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
@@ -93,14 +107,20 @@ int main(int argc, char* argv[]) {
 
 	tags = malloc( strlen(machine_tag) + 1 + strlen(hostname_tag) );
 	sprintf(tags, "%s %s", hostname_tag, machine_tag);
+
+	tag_idle = mktagcpu(tags, "type=idle");
+	tag_user = mktagcpu(tags, "type=user");
+	tag_wait = mktagcpu(tags, "type=wait");
+	tag_system = mktagcpu(tags, "type=system");
+
 	printf("%s\n", tags);
 
 	display_lpar_util();
 	while (1) {
-                net_collect(tags);
-                disk_collect(tags);
-                /*collect_mem_info(tags); */
-		/*display_lpar_util(); */
+		net_collect(tags);
+		disk_collect(tags);
+		/*collect_mem_info(tags); */
+		display_lpar_util();
 		sleep(atoi(argv[1]));
 	}
 	return (0);
@@ -270,60 +290,35 @@ void display_lpar_util(void) {
 
 	/* Processor Utilization - Applies for both SPLPAR and DLPAR*/
 	sprintf(pcpu_user, "%5.1f", (double) delta_pcpu_user * 100.0 / (double) pcputime);
-	sendCollectedData(tv.tv_sec, "cpu.user", pcpu_user, tags);
+	sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar", pcpu_user, tag_user);
 
 	sprintf(pcpu_sys, "%5.1f ", (double) delta_pcpu_sys * 100.0 / (double) pcputime);
-	sendCollectedData(tv.tv_sec, "cpu.system", pcpu_sys, tags);
+	sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar", pcpu_sys, tag_system);
 
 	sprintf(pcpu_wait, "%6.1f ", (double) delta_pcpu_wait * 100.0 / (double) pcputime);
-	sendCollectedData(tv.tv_sec, "cpu.wait", pcpu_wait, tags);
+	sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar", pcpu_wait, tag_wait);
 
 	sprintf(pcpu_idle, "%6.1f ", (double) delta_pcpu_idle * 100.0 / (double) pcputime);
-	sendCollectedData(tv.tv_sec, "cpu.idle", pcpu_idle, tags);
+	sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar", pcpu_idle, tag_idle);
 
 	if (lparstats.type.b.shared_enabled) { /* print SPLPAR specific stats */
 		/* Physical Processor Consumed by this partition */
 		phys_proc_consumed = (double) delta_purr / (double) delta_time_base;
 		sprintf(physc, "%5.2f ", (double) phys_proc_consumed);
-		sendCollectedData(tv.tv_sec, "cpu.physc", physc, tags);
+		sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar.physc", physc, tags);
 
 		/* Percentage of Entitlement Consumed - percentage of entitled physical processor tics consumed */
 		percent_ent = (double) ((phys_proc_consumed / entitlement) * 100);
 		sprintf(entc, "%5.1f ", percent_ent);
-		sendCollectedData(tv.tv_sec, "cpu.entc", entc, tags);
+		sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar.entc", entc, tags);
 
-		/* Logical Processor Utilization of this partition */
-		/*printf("%5.1f ",
-				(double) (delta_lcpu_user + delta_lcpu_sys) * 100.0
-						/ (double) lcputime);*/
-
-		/* if (lparstats.type.b.pool_util_authority) { */
-			/* Available physical Processor units available in the shared pool (app) */
-/*			printf("%5.2f ",
-					(double) (lparstats.pool_idle_time - last_pit) / XINTFRAC
-							* (double) delta_time_base);
-		} */
-
-		/* Virtual CPU Context Switches per second */
-		/*vcsw = lparstats.vol_virt_cswitch + lparstats.invol_virt_cswitch;
-		delta_sec = HTIC2SEC(delta_time_base);
-		printf("%4.0f ", (double) (vcsw - last_vcsw) / delta_sec); */
-
-		/* Phantom Interrupts per second */
-		/* printf("%5.0f",
-				(double) (lparstats.phantintrs - last_phint) / delta_sec); */
 	} else if (lparstats.type.b.donate_enabled) { /* print donation-enabled DLPAR specific stats */
 		/* Physical Processor Consumed by this partition
 		 * (excluding donated and stolen physical processor tics). */
 		phys_proc_consumed = (double) delta_purr / (double) delta_time_base;
 		sprintf(physc, "%5.2f ", (double) phys_proc_consumed);
-		sendCollectedData(tv.tv_sec, "cpu.physc", physc, tags);
-		/* Virtual CPU Context Switches per second */
-		/* vcsw = lparstats.vol_virt_cswitch + lparstats.invol_virt_cswitch;
-		delta_sec = HTIC2SEC(delta_time_base);
-		printf("%5.0f ", (double) (vcsw - last_vcsw) / delta_sec); */
+		sendCollectedData(tv.tv_sec, "proc.stat.cpu.lpar.physc", physc, tags);
 	}
-	/* printf("\n"); */
 
 	save_last_values(&cpustats, &lparstats);
 }
