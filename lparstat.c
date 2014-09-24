@@ -15,9 +15,6 @@
 /*                                                                        */
 /* IBM_PROLOG_END_TAG                                                     */
 
-static char sccsid[] =
-		"@(#)42        1.2  src/bos/usr/ccs/lib/libperfstat/simplelparstat.c, libperfstat, bos53N, n2007_38A8 9/17/07 05:13:28";
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,10 +24,6 @@ static char sccsid[] =
 #include "uname.h"
 #include "net.h"
 #include "disk.h"
-
-#define XINTFRAC	((double)(_system_configuration.Xint)/(double)(_system_configuration.Xfrac))
-/* convert physical processor tics to seconds */
-#define HTIC2SEC(x)	((double)x * XINTFRAC)/(double)1000000000.0
 
 static int disp_util_header = 1;
 static u_longlong_t last_time_base;
@@ -119,7 +112,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 		net_collect(tags);
 		disk_collect(tags);
-		/*collect_mem_info(tags); */
+		collect_mem_info(tags);
 		display_lpar_util();
 		sleep(atoi(argv[1]));
 	}
